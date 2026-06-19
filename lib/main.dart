@@ -188,7 +188,7 @@ class ClassifierService {
 
   Future<void> loadModel() async {
     try {
-      _interpreter = await Interpreter.fromAsset('assets/QU_Pests_119Classes.pt');
+      _interpreter = await Interpreter.fromAsset('assets/QU_Pests_119Classes_float16.tflite');
     } catch (e) {
       throw Exception('خطا در بارگذاری مدل: $e');
     }
