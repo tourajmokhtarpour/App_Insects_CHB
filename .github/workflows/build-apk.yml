@@ -172,7 +172,9 @@ jobs:
         fi
 
     - name: Install dependencies
-      run: flutter pub get
+      run: |
+        flutter pub get
+        flutter pub run flutter_launcher_icons
 
     - name: Build APK
       run: |
