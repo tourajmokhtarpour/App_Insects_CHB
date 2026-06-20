@@ -30,7 +30,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.example.insect_detector"
+        applicationId "com.example.insect_detector_1"
         minSdk 21
         targetSdk 36
         versionCode flutterVersionCode.toInteger()
