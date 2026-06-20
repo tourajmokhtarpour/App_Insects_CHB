@@ -175,11 +175,6 @@ class PestDatabase {
     118: PestInfo(name:'Yponomeuta padella (Larve)',commonName:'لارو پروانه چادر',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'سیب',damage:'برگ‌خواری',symptoms:'چادر ابریشمی',controlMethods:'جمع‌آوری',quarantineStatus:'آفت میوه'),
     119: PestInfo(name:'Zeuzera pyrina',commonName:'پروانه چوب‌خوار',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'درختان میوه',damage:'خسارت به شاخه',symptoms:'خشکیدگی شاخه',controlMethods:'هرس',quarantineStatus:'آفت مهم'),
   };
-  static PestInfo? getPestByIndex(int index) {
-    return pests[index];
-  }
-}
-
     if (pestDetails.containsKey(name)) {
       var info = pestDetails[name]!;
       return PestInfo(
