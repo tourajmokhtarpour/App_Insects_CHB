@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image/image.dart' as img;
@@ -31,133 +32,188 @@ class PestInfo {
   });
 }
 
-// ==================== دیتابیس ۱۱۹ آفت (اصلاح‌شده) ====================
+// ==================== دیتابیس آفات (از فایل labels.txt) ====================
 class PestDatabase {
-  static final Map<int, PestInfo> pests = {
+  static List<String> _labels = [];
+  static Map<int, PestInfo> _pests = {};
+
+  static Future<void> loadLabels() async {
+    try {
+      String labelsText = await rootBundle.loadString('assets/labels.txt');
+      _labels = labelsText.split('\n').where((s) => s.isNotEmpty).toList();
+      
+      // ساخت اطلاعات کامل برای هر کلاس
+      for (int i = 0; i < _labels.length; i++) {
+        _pests[i] = _createPestInfo(i, _labels[i]);
+      }
+      
+      print('✅ تعداد برچسب‌ها بارگذاری شده: ${_labels.length}');
+    } catch (e) {
+      throw Exception('خطا در بارگذاری فایل labels.txt: $e');
+    }
+  }
+
+   static final Map<int, PestInfo> pests = {
     0: PestInfo(name:'Acherontia atropos',commonName:'پروانه مرگ',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا، آفریقا',hosts:'سیب‌زمینی، گوجه‌فرنگی',damage:'برگ‌خواری',symptoms:'سوراخ شدن برگ',controlMethods:'کنترل بیولوژیک',quarantineStatus:'آفت مهم'),
     1: PestInfo(name:'Acherontia atropos (Larve)',commonName:'لارو پروانه مرگ',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا، آفریقا',hosts:'سیب‌زمینی، گوجه‌فرنگی',damage:'برگ‌خواری شدید',symptoms:'لخت شدن گیاه',controlMethods:'جمع‌آوری دستی',quarantineStatus:'آفت مهم'),
     2: PestInfo(name:'Acrosternum millierei',commonName:'سنه میله‌ای',order:'Hemiptera - نیم‌بالان',distribution:'ایران، ترکیه',hosts:'بادام، پسته',damage:'مکیدن شیره',symptoms:'چروکیدگی میوه',controlMethods:'سم‌پاشی',quarantineStatus:'آفت مهم'),
     3: PestInfo(name:'Adoxophyes orana',commonName:'کرم برگ‌پیچ درختان میوه',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا و آسیا',hosts:'درختان میوه',damage:'خسارت به برگ و میوه',symptoms:'برگ‌های پیچیده',controlMethods:'تله فرمونی و Bt',quarantineStatus:'آفت قرنطینه‌ای'),
     4: PestInfo(name:'Agrilus hastulifer',commonName:'سوسک چوب‌خوار',order:'Coleoptera - قاب‌بالان',distribution:'اروپا، آسیا',hosts:'بلوط، راش',damage:'خسارت به چوب',symptoms:'دالان در تنه',controlMethods:'بهداشت جنگل',quarantineStatus:'آفت جنگلی'),
-    5: PestInfo(name:'Amrasca biguttula',commonName:'زنجرک پنبه',order:'Hemiptera - نیم‌بالان',distribution:'آسیا',hosts:'پنبه و سبزیجات',damage:'مکیدن شیره گیاهی',symptoms:'زردی و پیچیدگی برگ',controlMethods:'کنترل بیولوژیک و سموم',quarantineStatus:'آفت مهم کشاورزی'),
-    6: PestInfo(name:'Anarsia lineatella',commonName:'شپشک شاخه هلو',order:'Lepidoptera - پروانه‌سانان',distribution:'جهان‌گستر',hosts:'هلو، زردآلو',damage:'خسارت به شاخه و میوه',symptoms:'خشکیدگی شاخه',controlMethods:'هرس و سم‌پاشی',quarantineStatus:'آفت مهم'),
-    7: PestInfo(name:'Anastrepha fraterculus',commonName:'مگس میوه آمریکای جنوبی',order:'Diptera - دوبالان',distribution:'آمریکای جنوبی',hosts:'میوه‌های گرمسیری',damage:'پوسیدگی میوه',symptoms:'سوراخ میوه',controlMethods:'تله‌گذاری',quarantineStatus:'قرنطینه‌ای'),
-    8: PestInfo(name:'Anastrepha ludens',commonName:'مگس میوه مکزیکی',order:'Diptera - دوبالان',distribution:'آمریکای مرکزی',hosts:'مرکبات و انبه',damage:'پوسیدگی میوه',symptoms:'سوراخ تخم‌ریزی',controlMethods:'تله و طعمه‌پاشی',quarantineStatus:'آفت قرنطینه‌ای'),
-    9: PestInfo(name:'Anastrepha suspensa',commonName:'مگس میوه کارائیب',order:'Diptera - دوبالان',distribution:'کارائیب',hosts:'میوه‌های گرمسیری',damage:'خسارت به میوه',symptoms:'ریزش میوه',controlMethods:'تله‌گذاری',quarantineStatus:'آفت قرنطینه‌ای'),
-    10: PestInfo(name:'Anoplophora chinensis',commonName:'سوسک شاخک‌بلند مرکبات',order:'Coleoptera - قاب‌بالان',distribution:'شرق آسیا',hosts:'مرکبات و درختان زینتی',damage:'خسارت به تنه',symptoms:'سوراخ خروجی',controlMethods:'حذف درخت آلوده',quarantineStatus:'قرنطینه‌ای'),
-    11: PestInfo(name:'Anoplophora glabripennis',commonName:'سوسک شاخک‌بلند آسیایی',order:'Coleoptera - قاب‌بالان',distribution:'آسیا',hosts:'درختان پهن‌برگ',damage:'مرگ درخت',symptoms:'خشکیدگی شاخه',controlMethods:'ریشه‌کنی',quarantineStatus:'قرنطینه‌ای'),
-    12: PestInfo(name:'Apantesis vittata',commonName:'پروانه راه‌راه',order:'Lepidoptera - پروانه‌سانان',distribution:'آمریکای شمالی',hosts:'گیاهان مختلف',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'کنترل بیولوژیک',quarantineStatus:'آفت معمولی'),
-    13: PestInfo(name:'Arctia caja (Adult)',commonName:'پروانه خرسی بالغ',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'گیاهان مختلف',damage:'برگ‌خواری لارو',symptoms:'خسارت برگی',controlMethods:'Bt',quarantineStatus:'آفت معمولی'),
-    14: PestInfo(name:'Arctia caja (Larve)',commonName:'لارو پروانه خرسی',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'گیاهان مختلف',damage:'برگ‌خواری',symptoms:'لخت شدن گیاه',controlMethods:'جمع‌آوری دستی',quarantineStatus:'آفت معمولی'),
-    15: PestInfo(name:'Argema mittrei',commonName:'پروانه ماه ماداگاسکار',order:'Lepidoptera - پروانه‌سانان',distribution:'ماداگاسکار',hosts:'درختان گرمسیری',damage:'برگ‌خواری',symptoms:'خسارت برگی',controlMethods:'محافظت زیستگاه',quarantineStatus:'گونه نادر'),
-    16: PestInfo(name:'Argema mittrei (Larve)',commonName:'لارو پروانه ماه',order:'Lepidoptera - پروانه‌سانان',distribution:'ماداگاسکار',hosts:'درختان گرمسیری',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'محافظت',quarantineStatus:'گونه نادر'),
-    17: PestInfo(name:'Attacus atlas',commonName:'پروانه اطلس',order:'Lepidoptera - پروانه‌سانان',distribution:'آسیای جنوب شرقی',hosts:'درختان گرمسیری',damage:'برگ‌خواری لارو',symptoms:'خسارت برگی',controlMethods:'حفاظت',quarantineStatus:'گونه بزرگ'),
-    18: PestInfo(name:'Bactrocera cucurbitae',commonName:'مگس جالیز',order:'Diptera - دوبالان',distribution:'گرمسیری',hosts:'کدوییان',damage:'خسارت به میوه',symptoms:'پوسیدگی',controlMethods:'تله فرمونی',quarantineStatus:'قرنطینه‌ای'),
-    19: PestInfo(name:'Bactrocera dorsalis',commonName:'مگس میوه شرقی',order:'Diptera - دوبالان',distribution:'آسیا و آفریقا',hosts:'بیش از 300 گونه گیاهی',damage:'پوسیدگی میوه',symptoms:'لکه و سوراخ',controlMethods:'متیل اوژنول',quarantineStatus:'قرنطینه‌ای'),
-    20: PestInfo(name:'Bactrocera tryoni',commonName:'مگس میوه کوئینزلند',order:'Diptera - دوبالان',distribution:'استرالیا',hosts:'انواع میوه',damage:'خسارت میوه',symptoms:'ریزش زودرس',controlMethods:'تله‌گذاری',quarantineStatus:'قرنطینه‌ای'),
-    21: PestInfo(name:'Blitopertha orientalis',commonName:'سوسک شرقی',order:'Coleoptera - قاب‌بالان',distribution:'آسیا',hosts:'چمن و ریشه گیاهان',damage:'تغذیه از ریشه',symptoms:'زردی گیاه',controlMethods:'مدیریت خاک',quarantineStatus:'آفت مهم'),
-    22: PestInfo(name:'Cabera variolaria',commonName:'پروانه خط‌دار',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'درختان جنگلی',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'کنترل طبیعی',quarantineStatus:'آفت جنگلی'),
-    23: PestInfo(name:'Cacoecimorpha pronubana',commonName:'برگ‌پیچ مدیترانه‌ای',order:'Lepidoptera - پروانه‌سانان',distribution:'مدیترانه',hosts:'گیاهان زراعی و زینتی',damage:'خسارت برگی',symptoms:'برگ پیچیده',controlMethods:'Bt',quarantineStatus:'آفت مهم'),
-    24: PestInfo(name:'Cerambyx cerdo',commonName:'سوسک شاخک‌بلند بلوط',order:'Coleoptera - قاب‌بالان',distribution:'اروپا، آسیا',hosts:'بلوط',damage:'خسارت به چوب',symptoms:'دالان در تنه',controlMethods:'حفاظت جنگل',quarantineStatus:'گونه محافظت‌شده'),
-    25: PestInfo(name:'Ceratitis cosyra',commonName:'مگس انبه',order:'Diptera - دوبالان',distribution:'آفریقا',hosts:'انبه',damage:'پوسیدگی میوه',symptoms:'سوراخ میوه',controlMethods:'تله و طعمه',quarantineStatus:'قرنطینه‌ای'),
-    26: PestInfo(name:'Cerroneuroterus lanuginosus',commonName:'زنبور گال‌ساز',order:'Hymenoptera - بال‌غشاییان',distribution:'اروپا، آسیا',hosts:'بلوط',damage:'تشکیل گال',symptoms:'برآمدگی برگ',controlMethods:'کنترل طبیعی',quarantineStatus:'آفت جنگلی'),
-    27: PestInfo(name:'Cicadulina mbila',commonName:'زنجرک ذرت',order:'Hemiptera - نیم‌بالان',distribution:'آفریقا',hosts:'ذرت',damage:'انتقال بیماری',symptoms:'کوتولگی',controlMethods:'کنترل ناقل',quarantineStatus:'آفت مهم'),
-    28: PestInfo(name:'Conotrachelus nenuphar',commonName:'سرخرطومی آلو',order:'Coleoptera - قاب‌بالان',distribution:'آمریکای شمالی',hosts:'آلو و هلو',damage:'خسارت میوه',symptoms:'زخم هلالی',controlMethods:'سم‌پاشی',quarantineStatus:'قرنطینه‌ای'),
-    29: PestInfo(name:'Cosmopolites sordidus',commonName:'سوسک موز',order:'Coleoptera - قاب‌بالان',distribution:'مناطق موزکاری',hosts:'موز',damage:'خسارت ریزوم',symptoms:'ضعف بوته',controlMethods:'بهداشت مزرعه',quarantineStatus:'آفت مهم'),
-    30: PestInfo(name:'Cryptoblabes gnidiella',commonName:'بید خرما',order:'Lepidoptera - پروانه‌سانان',distribution:'مدیترانه',hosts:'خرما و انگور',damage:'خسارت خوشه',symptoms:'تار و فضولات',controlMethods:'تله فرمونی',quarantineStatus:'آفت مهم'),
-    31: PestInfo(name:'Cryptolaemus montrouzieri',commonName:'کفشدوزک استرالیایی',order:'Coleoptera - قاب‌بالان',distribution:'استرالیا',hosts:'شپشک‌ها',damage:'شکار آفت',symptoms:'کنترل بیولوژیک',controlMethods:'رهاسازی',quarantineStatus:'دشمن طبیعی'),
-    32: PestInfo(name:'Curculio glandium',commonName:'سرخرطومی بلوط',order:'Coleoptera - قاب‌بالان',distribution:'اروپا، آسیا',hosts:'بلوط',damage:'خسارت به میوه',symptoms:'سوراخ بلوط',controlMethods:'جمع‌آوری',quarantineStatus:'آفت جنگلی'),
-    33: PestInfo(name:'Cydia latiferreana',commonName:'کرم گلوگاه انار',order:'Lepidoptera - پروانه‌سانان',distribution:'آسیا',hosts:'انار',damage:'خسارت میوه',symptoms:'پوسیدگی گلوگاه',controlMethods:'بهداشت باغ',quarantineStatus:'آفت مهم'),
-    34: PestInfo(name:'Cydia pomonella',commonName:'کرم سیب',order:'Lepidoptera - پروانه‌سانان',distribution:'جهان‌گستر',hosts:'سیب، گلابی',damage:'خسارت میوه',symptoms:'کرم‌زدگی میوه',controlMethods:'تله فرمونی',quarantineStatus:'آفت مهم'),
-    35: PestInfo(name:'Danaus plexippus',commonName:'پروانه شاه‌پروانه',order:'Lepidoptera - پروانه‌سانان',distribution:'آمریکای شمالی',hosts:'آسکلپیاس',damage:'برگ‌خواری',symptoms:'خسارت برگی',controlMethods:'حفاظت',quarantineStatus:'گونه مهاجر'),
-    36: PestInfo(name:'Deilephila elpenor',commonName:'پروانه بید فیل',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'انگلستان، فوکسیا',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'کنترل طبیعی',quarantineStatus:'آفت معمولی'),
-    37: PestInfo(name:'Dendroctonus micans',commonName:'سوسک پوست‌خوار صنوبر',order:'Coleoptera - قاب‌بالان',distribution:'اروپا و آسیا',hosts:'کاج و صنوبر',damage:'مرگ درخت',symptoms:'رزین و سوراخ',controlMethods:'کنترل بیولوژیک',quarantineStatus:'قرنطینه‌ای'),
-    38: PestInfo(name:'Diatraea saccharalis',commonName:'کرم ساقه‌خوار نیشکر',order:'Lepidoptera - پروانه‌سانان',distribution:'قاره آمریکا',hosts:'نیشکر، ذرت',damage:'خسارت به ساقه',symptoms:'پوسیدگی و شکستگی ساقه',controlMethods:'کنترل بیولوژیک و زراعی',quarantineStatus:'آفت مهم'),
-    39: PestInfo(name:'Dicranura ulmi',commonName:'پروانه بید چنار',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'چنار',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'کنترل طبیعی',quarantineStatus:'آفت شهری'),
-    40: PestInfo(name:'Dicycla oo',commonName:'پروانه جغد',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا',hosts:'گیاهان علفی',damage:'برگ‌خواری',symptoms:'خسارت برگی',controlMethods:'طبیعی',quarantineStatus:'معمولی'),
-    41: PestInfo(name:'Dinoptera collaris',commonName:'سوسک چوب‌خوار',order:'Coleoptera - قاب‌بالان',distribution:'اروپا',hosts:'درختان جنگلی',damage:'خسارت چوب',symptoms:'دالان',controlMethods:'بهداشت جنگل',quarantineStatus:'جنگلی'),
-    42: PestInfo(name:'Diprion pini',commonName:'اره‌مگس کاج',order:'Hymenoptera - بال‌غشاییان',distribution:'اروپا، آسیا',hosts:'کاج',damage:'برگ‌خواری',symptoms:'ریزش سوزن',controlMethods:'کنترل بیولوژیک',quarantineStatus:'آفت جنگلی'),
-    43: PestInfo(name:'Earias fabia',commonName:'کرم غوزه بامیه',order:'Lepidoptera - پروانه‌سانان',distribution:'آسیا',hosts:'بامیه و پنبه',damage:'خسارت میوه',symptoms:'سوراخ و ریزش',controlMethods:'تله فرمونی',quarantineStatus:'آفت مهم'),
-    44: PestInfo(name:'Epicometis hirta',commonName:'سوسک کرک‌دار',order:'Coleoptera - قاب‌بالان',distribution:'اروپا، آسیا',hosts:'گل‌ها',damage:'تغذیه از گل',symptoms:'خسارت گلبرگ',controlMethods:'جمع‌آوری',quarantineStatus:'معمولی'),
-    45: PestInfo(name:'Epiphyas postvittana',commonName:'برگ‌پیچ استرالیایی',order:'Lepidoptera - پروانه‌سانان',distribution:'استرالیا',hosts:'بیش از 500 گیاه',damage:'خسارت برگ و میوه',symptoms:'پیچیدگی برگ',controlMethods:'Bt',quarantineStatus:'قرنطینه‌ای'),
-    46: PestInfo(name:'Epitrix tuberis',commonName:'کک سیب‌زمینی',order:'Coleoptera - قاب‌بالان',distribution:'آمریکا',hosts:'سیب‌زمینی',damage:'خسارت غده',symptoms:'سوراخ سطحی',controlMethods:'مدیریت زراعی',quarantineStatus:'قرنطینه‌ای'),
-    47: PestInfo(name:'Eudocima fullonia',commonName:'شب‌پره میوه‌خوار',order:'Lepidoptera - پروانه‌سانان',distribution:'گرمسیری',hosts:'مرکبات و انبه',damage:'مکیدن شیره میوه',symptoms:'زخم میوه',controlMethods:'تله نوری',quarantineStatus:'آفت مهم'),
-    48: PestInfo(name:'Euproctis chrysorrhoea',commonName:'پروانه دم‌طلایی',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'درختان میوه',damage:'برگ‌خواری',symptoms:'لخت شدن درخت',controlMethods:'Bt',quarantineStatus:'آفت مهم'),
-    49: PestInfo(name:'Gilpinia hercyniae',commonName:'اره‌مگس صنوبر',order:'Hymenoptera - بال‌غشاییان',distribution:'اروپا',hosts:'صنوبر',damage:'برگ‌خواری',symptoms:'ریزش سوزن‌ها',controlMethods:'کنترل بیولوژیک',quarantineStatus:'آفت جنگلی'),
-    50: PestInfo(name:'Gonipterus scutellatus',commonName:'سرخرطومی اکالیپتوس',order:'Coleoptera - قاب‌بالان',distribution:'استرالیا',hosts:'اکالیپتوس',damage:'برگ‌خواری',symptoms:'کاهش رشد',controlMethods:'زنبور پارازیتوئید',quarantineStatus:'قرنطینه‌ای'),
-    51: PestInfo(name:'Gypsonoma aceriana',commonName:'برگ‌پیچ افرا',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا',hosts:'افرا',damage:'برگ‌خواری',symptoms:'پیچیدگی برگ',controlMethods:'Bt',quarantineStatus:'آفت شهری'),
-    52: PestInfo(name:'Harpyia milhauseri',commonName:'پروانه جغد بزرگ',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'درختان',damage:'برگ‌خواری لارو',symptoms:'خسارت برگی',controlMethods:'طبیعی',quarantineStatus:'معمولی'),
-    53: PestInfo(name:'Helicoverpa zea',commonName:'کرم بلال ذرت',order:'Lepidoptera - پروانه‌سانان',distribution:'قاره آمریکا',hosts:'ذرت و پنبه',damage:'خسارت زایشی',symptoms:'سوراخ بلال',controlMethods:'Bt',quarantineStatus:'آفت مهم'),
-    54: PestInfo(name:'Hesperophanes sericeus',commonName:'سوسک ابریشمی',order:'Coleoptera - قاب‌بالان',distribution:'اروپا',hosts:'درختان',damage:'خسارت چوب',symptoms:'دالان',controlMethods:'بهداشت جنگل',quarantineStatus:'جنگلی'),
-    55: PestInfo(name:'Hyles lineata',commonName:'پروانه بید خط‌دار',order:'Lepidoptera - پروانه‌سانان',distribution:'آمریکا',hosts:'گیاهان مختلف',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'طبیعی',quarantineStatus:'معمولی'),
-    56: PestInfo(name:'Hylesinus varius',commonName:'سوسک پوست‌خوار',order:'Coleoptera - قاب‌بالان',distribution:'اروپا',hosts:'زیتون',damage:'خسارت به تنه',symptoms:'دالان',controlMethods:'هرس',quarantineStatus:'آفت زیتون'),
-    57: PestInfo(name:'Lachnus roboris',commonName:'شپشک بلوط',order:'Hemiptera - نیم‌بالان',distribution:'اروپا',hosts:'بلوط',damage:'مکیدن شیره',symptoms:'ضعف درخت',controlMethods:'کنترل طبیعی',quarantineStatus:'جنگلی'),
-    58: PestInfo(name:'Lampetis mimosa',commonName:'سوسک چوب‌خوار',order:'Coleoptera - قاب‌بالان',distribution:'آسیا',hosts:'درختان',damage:'خسارت چوب',symptoms:'دالان',controlMethods:'بهداشت',quarantineStatus:'جنگلی'),
-    59: PestInfo(name:'Liriomyza huidobrensis',commonName:'مینوز برگ',order:'Diptera - دوبالان',distribution:'جهان‌گستر',hosts:'سبزیجات و گل‌ها',damage:'مینوز برگ',symptoms:'دالان سفید',controlMethods:'کنترل بیولوژیک',quarantineStatus:'قرنطینه‌ای'),
-    60: PestInfo(name:'Lyctus brunneus',commonName:'سوسک پودرچوب',order:'Coleoptera - قاب‌بالان',distribution:'جهان‌گستر',hosts:'چوب خشک',damage:'خسارت به چوب',symptoms:'سوراخ ریز',controlMethods:'سم‌پاشی چوب',quarantineStatus:'آفت انباری'),
-    61: PestInfo(name:'Lymantria dispar',commonName:'پروانه کولی',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'درختان جنگلی',damage:'برگ‌خواری شدید',symptoms:'لخت شدن درخت',controlMethods:'Bt',quarantineStatus:'قرنطینه‌ای'),
-    62: PestInfo(name:'Lymantria monacha',commonName:'پروانه راهبه',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا و آسیا',hosts:'درختان جنگلی',damage:'برگ‌خواری شدید',symptoms:'لخت شدن درخت',controlMethods:'Bt',quarantineStatus:'قرنطینه‌ای'),
-    63: PestInfo(name:'Macroglossum stellatarum',commonName:'پروانه بید ستاره‌ای',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'گل‌ها',damage:'تغذیه از شهد',symptoms:'خسارت گل',controlMethods:'طبیعی',quarantineStatus:'معمولی'),
-    64: PestInfo(name:'Metamasius hemipterus',commonName:'سرخرطومی نخل',order:'Coleoptera - قاب‌بالان',distribution:'گرمسیری',hosts:'نخل',damage:'خسارت به تنه',symptoms:'پوسیدگی',controlMethods:'تله فرمونی',quarantineStatus:'آفت نخل'),
-    65: PestInfo(name:'Monochamus alternatus',commonName:'سوسک کاج ژاپنی',order:'Coleoptera - قاب‌بالان',distribution:'شرق آسیا',hosts:'کاج',damage:'ناقل نماتد کاج',symptoms:'خشکیدگی',controlMethods:'قطع درخت آلوده',quarantineStatus:'قرنطینه‌ای'),
-    66: PestInfo(name:'Monochamus urussovi',commonName:'سوسک شاخک‌بلند مخروطیان',order:'Coleoptera - قاب‌بالان',distribution:'روسیه و آسیا',hosts:'مخروطیان',damage:'خسارت چوب',symptoms:'سوراخ تنه',controlMethods:'مدیریت جنگل',quarantineStatus:'آفت جنگلی'),
-    67: PestInfo(name:'Nezara viridula',commonName:'سنه سبز',order:'Hemiptera - نیم‌بالان',distribution:'جهان‌گستر',hosts:'حبوبات',damage:'مکیدن شیره',symptoms:'لکه میوه',controlMethods:'کنترل بیولوژیک',quarantineStatus:'آفت مهم'),
-    68: PestInfo(name:'Nycteola asiatica',commonName:'پروانه بید آسیایی',order:'Lepidoptera - پروانه‌سانان',distribution:'آسیا',hosts:'درختان',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'طبیعی',quarantineStatus:'معمولی'),
-    69: PestInfo(name:'Nymphalis antiopa',commonName:'پروانه سوگواری',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'درختان',damage:'برگ‌خواری لارو',symptoms:'خسارت برگی',controlMethods:'طبیعی',quarantineStatus:'معمولی'),
-    70: PestInfo(name:'Opodiphthera astrophela',commonName:'پروانه اطلس استرالیایی',order:'Lepidoptera - پروانه‌سانان',distribution:'استرالیا',hosts:'درختان',damage:'برگ‌خواری',symptoms:'خسارت برگی',controlMethods:'حفاظت',quarantineStatus:'گونه بزرگ'),
-    71: PestInfo(name:'Opodiphthera eucalypti',commonName:'پروانه اکالیپتوس',order:'Lepidoptera - پروانه‌سانان',distribution:'استرالیا',hosts:'اکالیپتوس',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'حفاظت',quarantineStatus:'بومی'),
-    72: PestInfo(name:'Osphranteria coerulescens',commonName:'سوسک آبی',order:'Coleoptera - قاب‌بالان',distribution:'اروپا',hosts:'گیاهان مختلف',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'جمع‌آوری',quarantineStatus:'معمولی'),
-    73: PestInfo(name:'Otiorhynchus sulcatus',commonName:'سرخرطومی شیاردار',order:'Coleoptera - قاب‌بالان',distribution:'اروپا',hosts:'درختان میوه',damage:'خسارت میوه و ریشه',symptoms:'سوراخ و لکه',controlMethods:'سم‌پاشی و کنترل بیولوژیک',quarantineStatus:'آفت میوه'),
-    74: PestInfo(name:'Palpita unionalis',commonName:'پروانه زیتون',order:'Lepidoptera - پروانه‌سانان',distribution:'آسیا',hosts:'زیتون',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'Bt',quarantineStatus:'آفت زیتون'),
-    75: PestInfo(name:'Papilio glaucus',commonName:'پروانه دم‌چلچله‌ای',order:'Lepidoptera - پروانه‌سانان',distribution:'آمریکای شمالی',hosts:'درختان',damage:'برگ‌خواری',symptoms:'خسارت برگی',controlMethods:'حفاظت',quarantineStatus:'زیبا'),
-    76: PestInfo(name:'Perkinsiella saccharicida',commonName:'زنجرک نیشکر',order:'Hemiptera - نیم‌بالان',distribution:'اقیانوسیه',hosts:'نیشکر',damage:'انتقال ویروس',symptoms:'ضعف گیاه',controlMethods:'کنترل ناقل',quarantineStatus:'آفت مهم'),
-    77: PestInfo(name:'Pissodes castaneus',commonName:'سرخرطومی کاج',order:'Coleoptera - قاب‌بالان',distribution:'اروپا',hosts:'کاج',damage:'خسارت ساقه',symptoms:'خشکیدگی',controlMethods:'بهداشت جنگل',quarantineStatus:'قرنطینه‌ای'),
-    78: PestInfo(name:'Platypus cylindrus',commonName:'سوسک استوانه‌ای',order:'Coleoptera - قاب‌بالان',distribution:'اروپا',hosts:'بلوط',damage:'خسارت چوب',symptoms:'دالان',controlMethods:'بهداشت',quarantineStatus:'جنگلی'),
-    79: PestInfo(name:'Popillia japonica',commonName:'سوسک ژاپنی',order:'Coleoptera - قاب‌بالان',distribution:'ژاپن و آمریکا',hosts:'بیش از 300 گیاه',damage:'برگ‌خواری',symptoms:'اسکلت برگ',controlMethods:'تله و کنترل بیولوژیک',quarantineStatus:'قرنطینه‌ای'),
-    80: PestInfo(name:'Prays oleae',commonName:'بید زیتون',order:'Lepidoptera - پروانه‌سانان',distribution:'مدیترانه',hosts:'زیتون',damage:'خسارت گل و میوه',symptoms:'ریزش میوه',controlMethods:'تله فرمونی',quarantineStatus:'آفت مهم'),
-    81: PestInfo(name:'Pristiphora abietina',commonName:'اره‌مگس صنوبر نروژی',order:'Hymenoptera - بال‌غشاییان',distribution:'اروپا',hosts:'صنوبر',damage:'برگ‌خواری',symptoms:'قهوه‌ای شدن سوزن',controlMethods:'کنترل بیولوژیک',quarantineStatus:'آفت جنگلی'),
-    82: PestInfo(name:'Psalmocharias alhageos',commonName:'پروانه بید',order:'Lepidoptera - پروانه‌سانان',distribution:'آسیا',hosts:'گیاهان مختلف',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'طبیعی',quarantineStatus:'معمولی'),
-    83: PestInfo(name:'Rhagoletis pomonella',commonName:'مگس سیب',order:'Diptera - دوبالان',distribution:'آمریکای شمالی',hosts:'سیب',damage:'خسارت میوه',symptoms:'کرم‌زدگی',controlMethods:'تله',quarantineStatus:'قرنطینه‌ای'),
-    84: PestInfo(name:'Saturnia pavonia',commonName:'پروانه چشم‌طاووسی کوچک',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'درختان',damage:'برگ‌خواری',symptoms:'خسارت برگی',controlMethods:'حفاظت',quarantineStatus:'زیبا'),
-    85: PestInfo(name:'Schinia arcigera',commonName:'پروانه گل‌خوار',order:'Lepidoptera - پروانه‌سانان',distribution:'آمریکا',hosts:'گل‌ها',damage:'تغذیه از گل',symptoms:'خسارت گلبرگ',controlMethods:'طبیعی',quarantineStatus:'معمولی'),
-    86: PestInfo(name:'Sirex noctilio',commonName:'زنبور چوب‌خوار',order:'Hymenoptera - بال‌غشاییان',distribution:'اروپا، آسیا',hosts:'کاج',damage:'خسارت به چوب',symptoms:'دالان',controlMethods:'کنترل بیولوژیک',quarantineStatus:'قرنطینه‌ای'),
-    87: PestInfo(name:'Smerinthus ocellata',commonName:'پروانه بید چشم‌دار',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'درختان',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'طبیعی',quarantineStatus:'معمولی'),
-    88: PestInfo(name:'Sphrageidus similis',commonName:'شب‌پره زرد',order:'Lepidoptera - پروانه‌سانان',distribution:'آسیا',hosts:'گیاهان مختلف',damage:'برگ‌خواری لارو',symptoms:'خسارت برگی',controlMethods:'کنترل طبیعی',quarantineStatus:'معمولی'),
-    89: PestInfo(name:'Spodoptera eridania',commonName:'کرم برگ‌خوار جنوبی',order:'Lepidoptera - پروانه‌سانان',distribution:'آمریکا',hosts:'سبزیجات',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'Bt',quarantineStatus:'آفت مهم'),
-    90: PestInfo(name:'Spodoptera exigua',commonName:'کرم برگ‌خوار چغندر',order:'Lepidoptera - پروانه‌سانان',distribution:'جهان‌گستر',hosts:'سبزیجات',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'Bt',quarantineStatus:'آفت مهم'),
-    91: PestInfo(name:'Spodoptera frugiperda',commonName:'کرم برگخوار پاییزه',order:'Lepidoptera - پروانه‌سانان',distribution:'جهان‌گستر',hosts:'ذرت و غلات',damage:'خسارت شدید مزرعه',symptoms:'پارگی برگ',controlMethods:'IPM و Bt',quarantineStatus:'قرنطینه‌ای'),
-    92: PestInfo(name:'Spoladea recurvalis',commonName:'پروانه چغندر',order:'Lepidoptera - پروانه‌سانان',distribution:'گرمسیری',hosts:'چغندر',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'Bt',quarantineStatus:'آفت مهم'),
-    93: PestInfo(name:'Sternochetus mangiferae',commonName:'سرخرطومی هسته انبه',order:'Coleoptera - قاب‌بالان',distribution:'مناطق انبه‌خیز',hosts:'انبه',damage:'خسارت هسته',symptoms:'کاهش کیفیت',controlMethods:'قرنطینه و بهداشت',quarantineStatus:'قرنطینه‌ای'),
-    94: PestInfo(name:'Stromatium auratum',commonName:'سوسک طلایی',order:'Coleoptera - قاب‌بالان',distribution:'آسیا',hosts:'درختان',damage:'خسارت چوب',symptoms:'دالان',controlMethods:'بهداشت',quarantineStatus:'جنگلی'),
-    95: PestInfo(name:'Stromatium fulvum',commonName:'سوسک قهوه‌ای',order:'Coleoptera - قاب‌بالان',distribution:'آسیا',hosts:'درختان',damage:'خسارت چوب',symptoms:'دالان',controlMethods:'بهداشت',quarantineStatus:'جنگلی'),
-    96: PestInfo(name:'Synanthedon pyri',commonName:'پروانه شفاف گلابی',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا',hosts:'گلابی',damage:'خسارت به تنه',symptoms:'دالان',controlMethods:'تله فرمونی',quarantineStatus:'آفت میوه'),
-    97: PestInfo(name:'Synanthedon tipuliformis',commonName:'پروانه شفاف انگور',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا',hosts:'انگور',damage:'خسارت به ساقه',symptoms:'خشکیدگی',controlMethods:'تله فرمونی',quarantineStatus:'آفت انگور'),
-    98: PestInfo(name:'Tabanus atratus',commonName:'مگس اسب',order:'Diptera - دوبالان',distribution:'جهان‌گستر',hosts:'دام',damage:'نیش زدن',symptoms:'آزار دام',controlMethods:'تله',quarantineStatus:'آفت دام'),
-    99: PestInfo(name:'Thaumatopoea pityocampa',commonName:'پروانه ابریشم‌باف کاج',order:'Lepidoptera - پروانه‌سانان',distribution:'مدیترانه',hosts:'کاج',damage:'برگ‌خواری',symptoms:'لانه‌های ابریشمی',controlMethods:'Bt',quarantineStatus:'آفت جنگلی'),
-    100: PestInfo(name:'Thaumetopoea processionea',commonName:'پروانه فرآیندی بلوط',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا',hosts:'بلوط',damage:'برگ‌خواری',symptoms:'لانه ابریشمی',controlMethods:'Bt',quarantineStatus:'آفت جنگلی'),
-    101: PestInfo(name:'Tortrix viridana',commonName:'برگ‌پیچ سبز بلوط',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا',hosts:'بلوط',damage:'برگ‌خواری',symptoms:'پیچیدگی برگ',controlMethods:'Bt',quarantineStatus:'آفت جنگلی'),
-    102: PestInfo(name:'Trirachys sartus',commonName:'سوسک چوب‌خوار',order:'Coleoptera - قاب‌بالان',distribution:'آسیا',hosts:'درختان',damage:'خسارت چوب',symptoms:'دالان',controlMethods:'بهداشت',quarantineStatus:'جنگلی'),
-    103: PestInfo(name:'Tyria jacobaeae',commonName:'پروانه زنگ‌وله',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا',hosts:'زنگ‌وله',damage:'برگ‌خواری',symptoms:'خسارت برگی',controlMethods:'حفاظت',quarantineStatus:'زیبا'),
-    104: PestInfo(name:'Tyria jacobaeae (Adult)',commonName:'پروانه زنگ‌وله بالغ',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا',hosts:'زنگ‌وله',damage:'برگ‌خواری',symptoms:'خسارت برگی',controlMethods:'حفاظت',quarantineStatus:'زیبا'),
-    105: PestInfo(name:'Vanessa atalanta',commonName:'پروانه دریاسالار',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'گیاهان مختلف',damage:'برگ‌خواری',symptoms:'خسارت برگی',controlMethods:'حفاظت',quarantineStatus:'مهاجر'),
-    106: PestInfo(name:'Vanessa cardui',commonName:'پروانه رنگین‌کمان',order:'Lepidoptera - پروانه‌سانان',distribution:'جهان‌گستر',hosts:'گیاهان مختلف',damage:'برگ‌خواری',symptoms:'خسارت برگی',controlMethods:'حفاظت',quarantineStatus:'مهاجر'),
-    107: PestInfo(name:'Vanessa tameamea',commonName:'پروانه هاوایی',order:'Lepidoptera - پروانه‌سانان',distribution:'هاوایی',hosts:'گیاهان بومی',damage:'برگ‌خواری',symptoms:'خسارت برگی',controlMethods:'حفاظت',quarantineStatus:'بومی'),
-    108: PestInfo(name:'Vespa crabro',commonName:'زنبور سرخ',order:'Hymenoptera - بال‌غشاییان',distribution:'اروپا، آسیا',hosts:'حشرات دیگر',damage:'شکار زنبور عسل',symptoms:'حمله به کندو',controlMethods:'تخریب لانه',quarantineStatus:'آفت زنبورداری'),
-    109: PestInfo(name:'Vespula germanica',commonName:'زنبور زرد آلمانی',order:'Hymenoptera - بال‌غشاییان',distribution:'اروپا',hosts:'حشرات، میوه',damage:'آزار انسان',symptoms:'نیش زدن',controlMethods:'تخریب لانه',quarantineStatus:'آفت شهری'),
-    110: PestInfo(name:'Vespula maculifrons',commonName:'زنبور زرد',order:'Hymenoptera - بال‌غشاییان',distribution:'آمریکای شمالی',hosts:'حشرات، میوه',damage:'آزار انسان',symptoms:'نیش زدن',controlMethods:'تخریب لانه',quarantineStatus:'آفت شهری'),
-    111: PestInfo(name:'Viteus vitifoliae',commonName:'فیلوکسرا مو',order:'Hemiptera - نیم‌بالان',distribution:'جهان‌گستر',hosts:'انگور',damage:'خسارت ریشه',symptoms:'گره‌های ریشه',controlMethods:'پایه مقاوم',quarantineStatus:'قرنطینه‌ای'),
-    112: PestInfo(name:'Xanthogaleruca luteola',commonName:'سوسک زرد چنار',order:'Coleoptera - قاب‌بالان',distribution:'اروپا',hosts:'چنار',damage:'برگ‌خواری',symptoms:'اسکلت برگ',controlMethods:'سم‌پاشی',quarantineStatus:'آفت شهری'),
-    113: PestInfo(name:'Xylocopa valga',commonName:'زنبور درشت نجار',order:'Hymenoptera - بال‌غشاییان',distribution:'اروپا، آسیا',hosts:'چوب',damage:'حفر لانه در چوب',symptoms:'سوراخ چوب',controlMethods:'پر کردن سوراخ',quarantineStatus:'مفید'),
-    114: PestInfo(name:'Xylotrechus arvicola',commonName:'سوسک چوب‌خوار',order:'Coleoptera - قاب‌بالان',distribution:'اروپا',hosts:'درختان میوه',damage:'خسارت چوب',symptoms:'دالان',controlMethods:'بهداشت باغ',quarantineStatus:'آفت میوه'),
-    115: PestInfo(name:'Yponomeuta padella',commonName:'پروانه چادر سیب',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'سیب',damage:'برگ‌خواری',symptoms:'چادر ابریشمی',controlMethods:'Bt',quarantineStatus:'آفت میوه'),
-    116: PestInfo(name:'Yponomeuta padella (Larve)',commonName:'لارو پروانه چادر',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'سیب',damage:'برگ‌خواری',symptoms:'چادر ابریشمی',controlMethods:'جمع‌آوری',quarantineStatus:'آفت میوه'),
-    117: PestInfo(name:'Zeuzera pyrina',commonName:'پروانه چوب‌خوار',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'درختان میوه',damage:'خسارت به شاخه',symptoms:'خشکیدگی شاخه',controlMethods:'هرس',quarantineStatus:'آفت مهم'),
-    118: PestInfo(name:'Spodoptera litura',commonName:'کرم برگ‌خوار تنباکو',order:'Lepidoptera - پروانه‌سانان',distribution:'آسیا',hosts:'تنباکو، پنبه',damage:'برگ‌خواری شدید',symptoms:'لخت شدن گیاه',controlMethods:'Bt و سم‌پاشی',quarantineStatus:'آفت مهم'),
+    5: PestInfo(name:'Amrasca biguttula',commonName:'زنجرک پنبه',order:'Hemiptera - نیم‌بالان',distribution:'آسیا',hosts:'پنبه و سبزیجات',damage:'مکیدن شیره گیاهی',symptoms:'زردی برگ',controlMethods:'کنترل بیولوژیک و سموم',quarantineStatus:'آفت مهم کشاورزی'),
+    6: PestInfo(name:'Amrasca biguttula',commonName:'زنجرک پنبه',order:'Hemiptera - نیم‌بالان',distribution:'آسیا',hosts:'پنبه',damage:'مکیدن شیره',symptoms:'پیچیدگی برگ',controlMethods:'سم‌پاشی',quarantineStatus:'آفت مهم'),
+    7: PestInfo(name:'Anarsia lineatella',commonName:'شپشک شاخه هلو',order:'Lepidoptera - پروانه‌سانان',distribution:'جهان‌گستر',hosts:'هلو، زردآلو',damage:'خسارت به شاخه و میوه',symptoms:'خشکیدگی شاخه',controlMethods:'هرس و سم‌پاشی',quarantineStatus:'آفت مهم'),
+    8: PestInfo(name:'Anastrepha fraterculus',commonName:'مگس میوه آمریکای جنوبی',order:'Diptera - دوبالان',distribution:'آمریکای جنوبی',hosts:'میوه‌های گرمسیری',damage:'پوسیدگی میوه',symptoms:'سوراخ میوه',controlMethods:'تله‌گذاری',quarantineStatus:'قرنطینه‌ای'),
+    9: PestInfo(name:'Anastrepha ludens',commonName:'مگس میوه مکزیکی',order:'Diptera - دوبالان',distribution:'آمریکای مرکزی',hosts:'مرکبات و انبه',damage:'پوسیدگی میوه',symptoms:'سوراخ تخم‌ریزی',controlMethods:'تله و طعمه‌پاشی',quarantineStatus:'آفت قرنطینه‌ای'),
+    10: PestInfo(name:'Anastrepha suspensa',commonName:'مگس میوه کارائیب',order:'Diptera - دوبالان',distribution:'کارائیب',hosts:'میوه‌های گرمسیری',damage:'خسارت به میوه',symptoms:'ریزش میوه',controlMethods:'تله‌گذاری',quarantineStatus:'آفت قرنطینه‌ای'),
+    11: PestInfo(name:'Anoplophora chinensis',commonName:'سوسک شاخک‌بلند مرکبات',order:'Coleoptera - قاب‌بالان',distribution:'شرق آسیا',hosts:'مرکبات و درختان زینتی',damage:'خسارت به تنه',symptoms:'سوراخ خروجی',controlMethods:'حذف درخت آلوده',quarantineStatus:'قرنطینه‌ای'),
+    12: PestInfo(name:'Anoplophora glabripennis',commonName:'سوسک شاخک‌بلند آسیایی',order:'Coleoptera - قاب‌بالان',distribution:'آسیا',hosts:'درختان پهن‌برگ',damage:'مرگ درخت',symptoms:'خشکیدگی شاخه',controlMethods:'ریشه‌کنی',quarantineStatus:'قرنطینه‌ای'),
+    13: PestInfo(name:'Apantesis vittata',commonName:'پروانه راه‌راه',order:'Lepidoptera - پروانه‌سانان',distribution:'آمریکای شمالی',hosts:'گیاهان مختلف',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'کنترل بیولوژیک',quarantineStatus:'آفت معمولی'),
+    14: PestInfo(name:'Arctia caja (Adult)',commonName:'پروانه خرسی بالغ',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'گیاهان مختلف',damage:'برگ‌خواری لارو',symptoms:'خسارت برگی',controlMethods:'Bt',quarantineStatus:'آفت معمولی'),
+    15: PestInfo(name:'Arctia caja (Larve)',commonName:'لارو پروانه خرسی',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'گیاهان مختلف',damage:'برگ‌خواری',symptoms:'لخت شدن گیاه',controlMethods:'جمع‌آوری دستی',quarantineStatus:'آفت معمولی'),
+    16: PestInfo(name:'Argema mittrei',commonName:'پروانه ماه ماداگاسکار',order:'Lepidoptera - پروانه‌سانان',distribution:'ماداگاسکار',hosts:'درختان گرمسیری',damage:'برگ‌خواری',symptoms:'خسارت برگی',controlMethods:'محافظت زیستگاه',quarantineStatus:'گونه نادر'),
+    17: PestInfo(name:'Argema mittrei (Larve)',commonName:'لارو پروانه ماه',order:'Lepidoptera - پروانه‌سانان',distribution:'ماداگاسکار',hosts:'درختان گرمسیری',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'محافظت',quarantineStatus:'گونه نادر'),
+    18: PestInfo(name:'Attacus atlas',commonName:'پروانه اطلس',order:'Lepidoptera - پروانه‌سانان',distribution:'آسیای جنوب شرقی',hosts:'درختان گرمسیری',damage:'برگ‌خواری لارو',symptoms:'خسارت برگی',controlMethods:'حفاظت',quarantineStatus:'گونه بزرگ'),
+    19: PestInfo(name:'Bactrocera cucurbitae',commonName:'مگس جالیز',order:'Diptera - دوبالان',distribution:'گرمسیری',hosts:'کدوییان',damage:'خسارت به میوه',symptoms:'پوسیدگی',controlMethods:'تله فرمونی',quarantineStatus:'قرنطینه‌ای'),
+    20: PestInfo(name:'Bactrocera dorsalis',commonName:'مگس میوه شرقی',order:'Diptera - دوبالان',distribution:'آسیا و آفریقا',hosts:'بیش از 300 گونه گیاهی',damage:'پوسیدگی میوه',symptoms:'لکه و سوراخ',controlMethods:'متیل اوژنول',quarantineStatus:'قرنطینه‌ای'),
+    21: PestInfo(name:'Bactrocera tryoni',commonName:'مگس میوه کوئینزلند',order:'Diptera - دوبالان',distribution:'استرالیا',hosts:'انواع میوه',damage:'خسارت میوه',symptoms:'ریزش زودرس',controlMethods:'تله‌گذاری',quarantineStatus:'قرنطینه‌ای'),
+    22: PestInfo(name:'Blitopertha orientalis',commonName:'سوسک شرقی',order:'Coleoptera - قاب‌بالان',distribution:'آسیا',hosts:'چمن و ریشه گیاهان',damage:'تغذیه از ریشه',symptoms:'زردی گیاه',controlMethods:'مدیریت خاک',quarantineStatus:'آفت مهم'),
+    23: PestInfo(name:'Cabera variolaria',commonName:'پروانه خط‌دار',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'درختان جنگلی',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'کنترل طبیعی',quarantineStatus:'آفت جنگلی'),
+    24: PestInfo(name:'Cacoecimorpha pronubana',commonName:'برگ‌پیچ مدیترانه‌ای',order:'Lepidoptera - پروانه‌سانان',distribution:'مدیترانه',hosts:'گیاهان زراعی و زینتی',damage:'خسارت برگی',symptoms:'برگ پیچیده',controlMethods:'Bt',quarantineStatus:'آفت مهم'),
+    25: PestInfo(name:'Cerambyx cerdo',commonName:'سوسک شاخک‌بلند بلوط',order:'Coleoptera - قاب‌بالان',distribution:'اروپا، آسیا',hosts:'بلوط',damage:'خسارت به چوب',symptoms:'دالان در تنه',controlMethods:'حفاظت جنگل',quarantineStatus:'گونه محافظت‌شده'),
+    26: PestInfo(name:'Ceratitis cosyra',commonName:'مگس انبه',order:'Diptera - دوبالان',distribution:'آفریقا',hosts:'انبه',damage:'پوسیدگی میوه',symptoms:'سوراخ میوه',controlMethods:'تله و طعمه',quarantineStatus:'قرنطینه‌ای'),
+    27: PestInfo(name:'Cerroneuroterus lanuginosus',commonName:'زنبور گال‌ساز',order:'Hymenoptera - بال‌غشاییان',distribution:'اروپا، آسیا',hosts:'بلوط',damage:'تشکیل گال',symptoms:'برآمدگی برگ',controlMethods:'کنترل طبیعی',quarantineStatus:'آفت جنگلی'),
+    28: PestInfo(name:'Cicadulina mbila',commonName:'زنجرک ذرت',order:'Hemiptera - نیم‌بالان',distribution:'آفریقا',hosts:'ذرت',damage:'انتقال بیماری',symptoms:'کوتولگی',controlMethods:'کنترل ناقل',quarantineStatus:'آفت مهم'),
+    29: PestInfo(name:'Conotrachelus nenuphar',commonName:'سرخرطومی آلو',order:'Coleoptera - قاب‌بالان',distribution:'آمریکای شمالی',hosts:'آلو و هلو',damage:'خسارت میوه',symptoms:'زخم هلالی',controlMethods:'سم‌پاشی',quarantineStatus:'قرنطینه‌ای'),
+    30: PestInfo(name:'Cosmopolites sordidus',commonName:'سوسک موز',order:'Coleoptera - قاب‌بالان',distribution:'مناطق موزکاری',hosts:'موز',damage:'خسارت ریزوم',symptoms:'ضعف بوته',controlMethods:'بهداشت مزرعه',quarantineStatus:'آفت مهم'),
+    31: PestInfo(name:'Cryptoblabes gnidiella',commonName:'بید خرما',order:'Lepidoptera - پروانه‌سانان',distribution:'مدیترانه',hosts:'خرما و انگور',damage:'خسارت خوشه',symptoms:'تار و فضولات',controlMethods:'تله فرمونی',quarantineStatus:'آفت مهم'),
+    32: PestInfo(name:'Cryptolaemus montrouzieri',commonName:'کفشدوزک استرالیایی',order:'Coleoptera - قاب‌بالان',distribution:'استرالیا',hosts:'شپشک‌ها',damage:'شکار آفت',symptoms:'کنترل بیولوژیک',controlMethods:'رهاسازی',quarantineStatus:'دشمن طبیعی'),
+    33: PestInfo(name:'Curculio glandium',commonName:'سرخرطومی بلوط',order:'Coleoptera - قاب‌بالان',distribution:'اروپا، آسیا',hosts:'بلوط',damage:'خسارت به میوه',symptoms:'سوراخ بلوط',controlMethods:'جمع‌آوری',quarantineStatus:'آفت جنگلی'),
+    34: PestInfo(name:'Cydia latiferreana',commonName:'کرم گلوگاه انار',order:'Lepidoptera - پروانه‌سانان',distribution:'آسیا',hosts:'انار',damage:'خسارت میوه',symptoms:'پوسیدگی گلوگاه',controlMethods:'بهداشت باغ',quarantineStatus:'آفت مهم'),
+    35: PestInfo(name:'Cydia pomonella',commonName:'کرم سیب',order:'Lepidoptera - پروانه‌سانان',distribution:'جهان‌گستر',hosts:'سیب، گلابی',damage:'خسارت میوه',symptoms:'کرم‌زدگی میوه',controlMethods:'تله فرمونی',quarantineStatus:'آفت مهم'),
+    36: PestInfo(name:'Danaus plexippus',commonName:'پروانه شاه‌پروانه',order:'Lepidoptera - پروانه‌سانان',distribution:'آمریکای شمالی',hosts:'آسکلپیاس',damage:'برگ‌خواری',symptoms:'خسارت برگی',controlMethods:'حفاظت',quarantineStatus:'گونه مهاجر'),
+    37: PestInfo(name:'Deilephila elpenor',commonName:'پروانه بید فیل',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'انگلستان، فوکسیا',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'کنترل طبیعی',quarantineStatus:'آفت معمولی'),
+    38: PestInfo(name:'Dendroctonus micans',commonName:'سوسک پوست‌خوار صنوبر',order:'Coleoptera - قاب‌بالان',distribution:'اروپا و آسیا',hosts:'کاج و صنوبر',damage:'مرگ درخت',symptoms:'رزین و سوراخ',controlMethods:'کنترل بیولوژیک',quarantineStatus:'قرنطینه‌ای'),
+    39: PestInfo(name:'Deilephila elpenor',commonName:'پروانه بید',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا',hosts:'گیاهان مختلف',damage:'برگ‌خواری',symptoms:'خسارت برگی',controlMethods:'طبیعی',quarantineStatus:'معمولی'),
+    40: PestInfo(name:'Dicranura ulmi',commonName:'پروانه بید چنار',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'چنار',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'کنترل طبیعی',quarantineStatus:'آفت شهری'),
+    41: PestInfo(name:'Dicycla oo',commonName:'پروانه جغد',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا',hosts:'گیاهان علفی',damage:'برگ‌خواری',symptoms:'خسارت برگی',controlMethods:'طبیعی',quarantineStatus:'معمولی'),
+    42: PestInfo(name:'Dinoptera collaris',commonName:'سوسک چوب‌خوار',order:'Coleoptera - قاب‌بالان',distribution:'اروپا',hosts:'درختان جنگلی',damage:'خسارت چوب',symptoms:'دالان',controlMethods:'بهداشت جنگل',quarantineStatus:'جنگلی'),
+    43: PestInfo(name:'Diprion pini',commonName:'اره‌مگس کاج',order:'Hymenoptera - بال‌غشاییان',distribution:'اروپا، آسیا',hosts:'کاج',damage:'برگ‌خواری',symptoms:'ریزش سوزن',controlMethods:'کنترل بیولوژیک',quarantineStatus:'آفت جنگلی'),
+    44: PestInfo(name:'Diptera collaris',commonName:'مگس یقه‌ای',order:'Diptera - دوبالان',distribution:'اروپا',hosts:'گیاهان مختلف',damage:'لارو خاکزی',symptoms:'خسارت ریشه',controlMethods:'مدیریت خاک',quarantineStatus:'معمولی'),
+    45: PestInfo(name:'Earias fabia',commonName:'کرم غوزه بامیه',order:'Lepidoptera - پروانه‌سانان',distribution:'آسیا',hosts:'بامیه و پنبه',damage:'خسارت میوه',symptoms:'سوراخ و ریزش',controlMethods:'تله فرمونی',quarantineStatus:'آفت مهم'),
+    46: PestInfo(name:'Epicometis hirta',commonName:'سوسک کرک‌دار',order:'Coleoptera - قاب‌بالان',distribution:'اروپا، آسیا',hosts:'گل‌ها',damage:'تغذیه از گل',symptoms:'خسارت گلبرگ',controlMethods:'جمع‌آوری',quarantineStatus:'معمولی'),
+    47: PestInfo(name:'Epiphyas postvittana',commonName:'برگ‌پیچ استرالیایی',order:'Lepidoptera - پروانه‌سانان',distribution:'استرالیا',hosts:'بیش از 500 گیاه',damage:'خسارت برگ و میوه',symptoms:'پیچیدگی برگ',controlMethods:'Bt',quarantineStatus:'قرنطینه‌ای'),
+    48: PestInfo(name:'Epitrix tuberis',commonName:'کک سیب‌زمینی',order:'Coleoptera - قاب‌بالان',distribution:'آمریکا',hosts:'سیب‌زمینی',damage:'خسارت غده',symptoms:'سوراخ سطحی',controlMethods:'مدیریت زراعی',quarantineStatus:'قرنطینه‌ای'),
+    49: PestInfo(name:'Eudocima fullonia',commonName:'شب‌پره میوه‌خوار',order:'Lepidoptera - پروانه‌سانان',distribution:'گرمسیری',hosts:'مرکبات و انبه',damage:'مکیدن شیره میوه',symptoms:'زخم میوه',controlMethods:'تله نوری',quarantineStatus:'آفت مهم'),
+    50: PestInfo(name:'Euproctis chrysorrhoea',commonName:'پروانه دم‌طلایی',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'درختان میوه',damage:'برگ‌خواری',symptoms:'لخت شدن درخت',controlMethods:'Bt',quarantineStatus:'آفت مهم'),
+    51: PestInfo(name:'Gilpinia hercyniae',commonName:'اره‌مگس صنوبر',order:'Hymenoptera - بال‌غشاییان',distribution:'اروپا',hosts:'صنوبر',damage:'برگ‌خواری',symptoms:'ریزش سوزن‌ها',controlMethods:'کنترل بیولوژیک',quarantineStatus:'آفت جنگلی'),
+    52: PestInfo(name:'Gonipterus scutellatus',commonName:'سرخرطومی اکالیپتوس',order:'Coleoptera - قاب‌بالان',distribution:'استرالیا',hosts:'اکالیپتوس',damage:'برگ‌خواری',symptoms:'کاهش رشد',controlMethods:'زنبور پارازیتوئید',quarantineStatus:'قرنطینه‌ای'),
+    53: PestInfo(name:'Gypsonoma aceriana',commonName:'برگ‌پیچ افرا',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا',hosts:'افرا',damage:'برگ‌خواری',symptoms:'پیچیدگی برگ',controlMethods:'Bt',quarantineStatus:'آفت شهری'),
+    54: PestInfo(name:'Harpia milhauseri',commonName:'پروانه جغد بزرگ',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'درختان',damage:'برگ‌خواری لارو',symptoms:'خسارت برگی',controlMethods:'طبیعی',quarantineStatus:'معمولی'),
+    55: PestInfo(name:'Helicoverpa zea',commonName:'کرم بلال ذرت',order:'Lepidoptera - پروانه‌سانان',distribution:'قاره آمریکا',hosts:'ذرت و پنبه',damage:'خسارت زایشی',symptoms:'سوراخ بلال',controlMethods:'Bt',quarantineStatus:'آفت مهم'),
+    56: PestInfo(name:'Hesperophanes sericeus',commonName:'سوسک ابریشمی',order:'Coleoptera - قاب‌بالان',distribution:'اروپا',hosts:'درختان',damage:'خسارت چوب',symptoms:'دالان',controlMethods:'بهداشت جنگل',quarantineStatus:'جنگلی'),
+    57: PestInfo(name:'Hyles lineata',commonName:'پروانه بید خط‌دار',order:'Lepidoptera - پروانه‌سانان',distribution:'آمریکا',hosts:'گیاهان مختلف',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'طبیعی',quarantineStatus:'معمولی'),
+    58: PestInfo(name:'Hylesinus varius',commonName:'سوسک پوست‌خوار',order:'Coleoptera - قاب‌بالان',distribution:'اروپا',hosts:'زیتون',damage:'خسارت به تنه',symptoms:'دالان',controlMethods:'هرس',quarantineStatus:'آفت زیتون'),
+    59: PestInfo(name:'Lachnus roboris',commonName:'شپشک بلوط',order:'Hemiptera - نیم‌بالان',distribution:'اروپا',hosts:'بلوط',damage:'مکیدن شیره',symptoms:'ضعف درخت',controlMethods:'کنترل طبیعی',quarantineStatus:'جنگلی'),
+    60: PestInfo(name:'Lampetis mimosa',commonName:'سوسک چوب‌خوار',order:'Coleoptera - قاب‌بالان',distribution:'آسیا',hosts:'درختان',damage:'خسارت چوب',symptoms:'دالان',controlMethods:'بهداشت',quarantineStatus:'جنگلی'),
+    61: PestInfo(name:'Liriomyza huidobrensis',commonName:'مینوز برگ',order:'Diptera - دوبالان',distribution:'جهان‌گستر',hosts:'سبزیجات و گل‌ها',damage:'مینوز برگ',symptoms:'دالان سفید',controlMethods:'کنترل بیولوژیک',quarantineStatus:'قرنطینه‌ای'),
+    62: PestInfo(name:'Lyctus brunneus',commonName:'سوسک پودرچوب',order:'Coleoptera - قاب‌بالان',distribution:'جهان‌گستر',hosts:'چوب خشک',damage:'خسارت به چوب',symptoms:'سوراخ ریز',controlMethods:'سم‌پاشی چوب',quarantineStatus:'آفت انباری'),
+    63: PestInfo(name:'Lymantria dispar',commonName:'پروانه کولی',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'درختان جنگلی',damage:'برگ‌خواری شدید',symptoms:'لخت شدن درخت',controlMethods:'Bt',quarantineStatus:'قرنطینه‌ای'),
+    64: PestInfo(name:'Lymantria monacha',commonName:'پروانه راهبه',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا و آسیا',hosts:'درختان جنگلی',damage:'برگ‌خواری شدید',symptoms:'لخت شدن درخت',controlMethods:'Bt',quarantineStatus:'قرنطینه‌ای'),
+    65: PestInfo(name:'Macroglossum stellarum',commonName:'پروانه بید ستاره‌ای',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'گل‌ها',damage:'تغذیه از شهد',symptoms:'خسارت گل',controlMethods:'طبیعی',quarantineStatus:'معمولی'),
+    66: PestInfo(name:'Metamasius hemipterus',commonName:'سرخرطومی نخل',order:'Coleoptera - قاب‌بالان',distribution:'گرمسیری',hosts:'نخل',damage:'خسارت به تنه',symptoms:'پوسیدگی',controlMethods:'تله فرمونی',quarantineStatus:'آفت نخل'),
+    67: PestInfo(name:'Monochamus alternatus',commonName:'سوسک کاج ژاپنی',order:'Coleoptera - قاب‌بالان',distribution:'شرق آسیا',hosts:'کاج',damage:'ناقل نماتد کاج',symptoms:'خشکیدگی',controlMethods:'قطع درخت آلوده',quarantineStatus:'قرنطینه‌ای'),
+    68: PestInfo(name:'Monochamus urussovi',commonName:'سوسک شاخک‌بلند مخروطیان',order:'Coleoptera - قاب‌بالان',distribution:'روسیه و آسیا',hosts:'مخروطیان',damage:'خسارت چوب',symptoms:'سوراخ تنه',controlMethods:'مدیریت جنگل',quarantineStatus:'آفت جنگلی'),
+    69: PestInfo(name:'Nezara viridula',commonName:'سنه سبز',order:'Hemiptera - نیم‌بالان',distribution:'جهان‌گستر',hosts:'حبوبات',damage:'مکیدن شیره',symptoms:'لکه میوه',controlMethods:'کنترل بیولوژیک',quarantineStatus:'آفت مهم'),
+    70: PestInfo(name:'Nycteola asiatica',commonName:'پروانه بید آسیایی',order:'Lepidoptera - پروانه‌سانان',distribution:'آسیا',hosts:'درختان',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'طبیعی',quarantineStatus:'معمولی'),
+    71: PestInfo(name:'Nymphalis antiopa',commonName:'پروانه سوگواری',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'درختان',damage:'برگ‌خواری لارو',symptoms:'خسارت برگی',controlMethods:'طبیعی',quarantineStatus:'معمولی'),
+    72: PestInfo(name:'Opodiphthera astrophela',commonName:'پروانه اطلس استرالیایی',order:'Lepidoptera - پروانه‌سانان',distribution:'استرالیا',hosts:'درختان',damage:'برگ‌خواری',symptoms:'خسارت برگی',controlMethods:'حفاظت',quarantineStatus:'گونه بزرگ'),
+    73: PestInfo(name:'Opodiphthera eucalypti',commonName:'پروانه اکالیپتوس',order:'Lepidoptera - پروانه‌سانان',distribution:'استرالیا',hosts:'اکالیپتوس',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'حفاظت',quarantineStatus:'بومی'),
+    74: PestInfo(name:'Ophranteria coerulescens',commonName:'سوسک آبی',order:'Coleoptera - قاب‌بالان',distribution:'اروپا',hosts:'گیاهان مختلف',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'جمع‌آوری',quarantineStatus:'معمولی'),
+    75: PestInfo(name:'Otorhynchus sulcatus',commonName:'سرخرطومی شیاردار',order:'Coleoptera - قاب‌بالان',distribution:'اروپا',hosts:'درختان میوه',damage:'خسارت میوه',symptoms:'سوراخ',controlMethods:'سم‌پاشی',quarantineStatus:'آفت میوه'),
+    76: PestInfo(name:'Palpita unionalis',commonName:'پروانه زیتون',order:'Lepidoptera - پروانه‌سانان',distribution:'آسیا',hosts:'زیتون',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'Bt',quarantineStatus:'آفت زیتون'),
+    77: PestInfo(name:'Papilio glaucus',commonName:'پروانه دم‌چلچله‌ای',order:'Lepidoptera - پروانه‌سانان',distribution:'آمریکای شمالی',hosts:'درختان',damage:'برگ‌خواری',symptoms:'خسارت برگی',controlMethods:'حفاظت',quarantineStatus:'زیبا'),
+    78: PestInfo(name:'Perkinsiella saccharicida',commonName:'زنجرک نیشکر',order:'Hemiptera - نیم‌بالان',distribution:'اقیانوسیه',hosts:'نیشکر',damage:'انتقال ویروس',symptoms:'ضعف گیاه',controlMethods:'کنترل ناقل',quarantineStatus:'آفت مهم'),
+    79: PestInfo(name:'Pissodes castaneus',commonName:'سرخرطومی کاج',order:'Coleoptera - قاب‌بالان',distribution:'اروپا',hosts:'کاج',damage:'خسارت ساقه',symptoms:'خشکیدگی',controlMethods:'بهداشت جنگل',quarantineStatus:'قرنطینه‌ای'),
+    80: PestInfo(name:'Platypus cylindrus',commonName:'سوسک استوانه‌ای',order:'Coleoptera - قاب‌بالان',distribution:'اروپا',hosts:'بلوط',damage:'خسارت چوب',symptoms:'دالان',controlMethods:'بهداشت',quarantineStatus:'جنگلی'),
+    81: PestInfo(name:'Popillia japonica',commonName:'سوسک ژاپنی',order:'Coleoptera - قاب‌بالان',distribution:'ژاپن و آمریکا',hosts:'بیش از 300 گیاه',damage:'برگ‌خواری',symptoms:'اسکلت برگ',controlMethods:'تله و کنترل بیولوژیک',quarantineStatus:'قرنطینه‌ای'),
+    82: PestInfo(name:'Prays oleae',commonName:'بید زیتون',order:'Lepidoptera - پروانه‌سانان',distribution:'مدیترانه',hosts:'زیتون',damage:'خسارت گل و میوه',symptoms:'ریزش میوه',controlMethods:'تله فرمونی',quarantineStatus:'آفت مهم'),
+    83: PestInfo(name:'Pristiphora abietina',commonName:'اره‌مگس صنوبر نروژی',order:'Hymenoptera - بال‌غشاییان',distribution:'اروپا',hosts:'صنوبر',damage:'برگ‌خواری',symptoms:'قهوه‌ای شدن سوزن',controlMethods:'کنترل بیولوژیک',quarantineStatus:'آفت جنگلی'),
+    84: PestInfo(name:'Psalmocharias alhageos',commonName:'پروانه بید',order:'Lepidoptera - پروانه‌سانان',distribution:'آسیا',hosts:'گیاهان مختلف',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'طبیعی',quarantineStatus:'معمولی'),
+    85: PestInfo(name:'Rhagoletis pomonella',commonName:'مگس سیب',order:'Diptera - دوبالان',distribution:'آمریکای شمالی',hosts:'سیب',damage:'خسارت میوه',symptoms:'کرم‌زدگی',controlMethods:'تله',quarantineStatus:'قرنطینه‌ای'),
+    86: PestInfo(name:'Saturnia pavonia',commonName:'پروانه چشم‌طاووسی کوچک',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'درختان',damage:'برگ‌خواری',symptoms:'خسارت برگی',controlMethods:'حفاظت',quarantineStatus:'زیبا'),
+    87: PestInfo(name:'Schinia arcigera',commonName:'پروانه گل‌خوار',order:'Lepidoptera - پروانه‌سانان',distribution:'آمریکا',hosts:'گل‌ها',damage:'تغذیه از گل',symptoms:'خسارت گلبرگ',controlMethods:'طبیعی',quarantineStatus:'معمولی'),
+    88: PestInfo(name:'Sirex noctilio',commonName:'زنبور چوب‌خوار',order:'Hymenoptera - بال‌غشاییان',distribution:'اروپا، آسیا',hosts:'کاج',damage:'خسارت به چوب',symptoms:'دالان',controlMethods:'کنترل بیولوژیک',quarantineStatus:'قرنطینه‌ای'),
+    89: PestInfo(name:'Smerinthus ocellata',commonName:'پروانه بید چشم‌دار',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'درختان',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'طبیعی',quarantineStatus:'معمولی'),
+    90: PestInfo(name:'Spodoptera eridania',commonName:'کرم برگ‌خوار جنوبی',order:'Lepidoptera - پروانه‌سانان',distribution:'آمریکا',hosts:'سبزیجات',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'Bt',quarantineStatus:'آفت مهم'),
+    91: PestInfo(name:'Spodoptera exigua',commonName:'کرم برگ‌خوار چغندر',order:'Lepidoptera - پروانه‌سانان',distribution:'جهان‌گستر',hosts:'سبزیجات',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'Bt',quarantineStatus:'آفت مهم'),
+    92: PestInfo(name:'Spodoptera frugiperda',commonName:'کرم برگخوار پاییزه',order:'Lepidoptera - پروانه‌سانان',distribution:'جهان‌گستر',hosts:'ذرت و غلات',damage:'خسارت شدید مزرعه',symptoms:'پارگی برگ',controlMethods:'IPM و Bt',quarantineStatus:'قرنطینه‌ای'),
+    93: PestInfo(name:'Spodoptera litura',commonName:'کرم برگ‌خوار تنباکو',order:'Lepidoptera - پروانه‌سانان',distribution:'آسیا',hosts:'تنباکو، پنبه',damage:'برگ‌خواری',symptoms:'لخت شدن گیاه',controlMethods:'Bt',quarantineStatus:'آفت مهم'),
+    94: PestInfo(name:'Spoladea recurvalis',commonName:'پروانه چغندر',order:'Lepidoptera - پروانه‌سانان',distribution:'گرمسیری',hosts:'چغندر',damage:'برگ‌خواری',symptoms:'سوراخ برگ',controlMethods:'Bt',quarantineStatus:'آفت مهم'),
+    95: PestInfo(name:'Sternochetus mangiferae',commonName:'سرخرطومی هسته انبه',order:'Coleoptera - قاب‌بالان',distribution:'مناطق انبه‌خیز',hosts:'انبه',damage:'خسارت هسته',symptoms:'کاهش کیفیت',controlMethods:'قرنطینه و بهداشت',quarantineStatus:'قرنطینه‌ای'),
+    96: PestInfo(name:'Stromatium auratum',commonName:'سوسک طلایی',order:'Coleoptera - قاب‌بالان',distribution:'آسیا',hosts:'درختان',damage:'خسارت چوب',symptoms:'دالان',controlMethods:'بهداشت',quarantineStatus:'جنگلی'),
+    97: PestInfo(name:'Stromatium fulvum',commonName:'سوسک قهوه‌ای',order:'Coleoptera - قاب‌بالان',distribution:'آسیا',hosts:'درختان',damage:'خسارت چوب',symptoms:'دالان',controlMethods:'بهداشت',quarantineStatus:'جنگلی'),
+    98: PestInfo(name:'Synanthedon pyri',commonName:'پروانه شفاف گلابی',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا',hosts:'گلابی',damage:'خسارت به تنه',symptoms:'دالان',controlMethods:'تله فرمونی',quarantineStatus:'آفت میوه'),
+    99: PestInfo(name:'Synanthedon tipuliformis',commonName:'پروانه شفاف انگور',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا',hosts:'انگور',damage:'خسارت به ساقه',symptoms:'خشکیدگی',controlMethods:'تله فرمونی',quarantineStatus:'آفت انگور'),
+    100: PestInfo(name:'Tabanus atratus',commonName:'مگس اسب',order:'Diptera - دوبالان',distribution:'جهان‌گستر',hosts:'دام',damage:'نیش زدن',symptoms:'آزار دام',controlMethods:'تله',quarantineStatus:'آفت دام'),
+    101: PestInfo(name:'Thaumatopoea pityocampa',commonName:'پروانه ابریشم‌باف کاج',order:'Lepidoptera - پروانه‌سانان',distribution:'مدیترانه',hosts:'کاج',damage:'برگ‌خواری',symptoms:'لانه‌های ابریشمی',controlMethods:'Bt',quarantineStatus:'آفت جنگلی'),
+    102: PestInfo(name:'Thaumetopoea processionea',commonName:'پروانه فرآیندی بلوط',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا',hosts:'بلوط',damage:'برگ‌خواری',symptoms:'لانه ابریشمی',controlMethods:'Bt',quarantineStatus:'آفت جنگلی'),
+    103: PestInfo(name:'Tortrix viridana',commonName:'برگ‌پیچ سبز بلوط',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا',hosts:'بلوط',damage:'برگ‌خواری',symptoms:'پیچیدگی برگ',controlMethods:'Bt',quarantineStatus:'آفت جنگلی'),
+    104: PestInfo(name:'Trirachys sartus',commonName:'سوسک چوب‌خوار',order:'Coleoptera - قاب‌بالان',distribution:'آسیا',hosts:'درختان',damage:'خسارت چوب',symptoms:'دالان',controlMethods:'بهداشت',quarantineStatus:'جنگلی'),
+    105: PestInfo(name:'Tyria jacobaeae',commonName:'پروانه زنگ‌وله',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا',hosts:'زنگ‌وله',damage:'برگ‌خواری',symptoms:'خسارت برگی',controlMethods:'حفاظت',quarantineStatus:'زیبا'),
+    106: PestInfo(name:'Tyria jacobaeae (Adult)',commonName:'پروانه زنگ‌وله بالغ',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا',hosts:'زنگ‌وله',damage:'برگ‌خواری',symptoms:'خسارت برگی',controlMethods:'حفاظت',quarantineStatus:'زیبا'),
+    107: PestInfo(name:'Vanessa atalanta',commonName:'پروانه دریاسالار',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'گیاهان مختلف',damage:'برگ‌خواری',symptoms:'خسارت برگی',controlMethods:'حفاظت',quarantineStatus:'مهاجر'),
+    108: PestInfo(name:'Vanessa cardui',commonName:'پروانه رنگین‌کمان',order:'Lepidoptera - پروانه‌سانان',distribution:'جهان‌گستر',hosts:'گیاهان مختلف',damage:'برگ‌خواری',symptoms:'خسارت برگی',controlMethods:'حفاظت',quarantineStatus:'مهاجر'),
+    109: PestInfo(name:'Vanessa tameamea',commonName:'پروانه هاوایی',order:'Lepidoptera - پروانه‌سانان',distribution:'هاوایی',hosts:'گیاهان بومی',damage:'برگ‌خواری',symptoms:'خسارت برگی',controlMethods:'حفاظت',quarantineStatus:'بومی'),
+    110: PestInfo(name:'Vespa crabro',commonName:'زنبور سرخ',order:'Hymenoptera - بال‌غشاییان',distribution:'اروپا، آسیا',hosts:'حشرات دیگر',damage:'شکار زنبور عسل',symptoms:'حمله به کندو',controlMethods:'تخریب لانه',quarantineStatus:'آفت زنبورداری'),
+    111: PestInfo(name:'Vespula germanica',commonName:'زنبور زرد آلمانی',order:'Hymenoptera - بال‌غشاییان',distribution:'اروپا',hosts:'حشرات، میوه',damage:'آزار انسان',symptoms:'نیش زدن',controlMethods:'تخریب لانه',quarantineStatus:'آفت شهری'),
+    112: PestInfo(name:'Vespula maculifrons',commonName:'زنبور زرد',order:'Hymenoptera - بال‌غشاییان',distribution:'آمریکای شمالی',hosts:'حشرات، میوه',damage:'آزار انسان',symptoms:'نیش زدن',controlMethods:'تخریب لانه',quarantineStatus:'آفت شهری'),
+    113: PestInfo(name:'Viteus vitifoliae',commonName:'فیلوکسرا مو',order:'Hemiptera - نیم‌بالان',distribution:'جهان‌گستر',hosts:'انگور',damage:'خسارت ریشه',symptoms:'گره‌های ریشه',controlMethods:'پایه مقاوم',quarantineStatus:'قرنطینه‌ای'),
+    114: PestInfo(name:'Xanthogaleruca luteola',commonName:'سوسک زرد چنار',order:'Coleoptera - قاب‌بالان',distribution:'اروپا',hosts:'چنار',damage:'برگ‌خواری',symptoms:'اسکلت برگ',controlMethods:'سم‌پاشی',quarantineStatus:'آفت شهری'),
+    115: PestInfo(name:'Xylocopa valga',commonName:'زنبور درشت نجار',order:'Hymenoptera - بال‌غشاییان',distribution:'اروپا، آسیا',hosts:'چوب',damage:'حفر لانه در چوب',symptoms:'سوراخ چوب',controlMethods:'پر کردن سوراخ',quarantineStatus:'مفید'),
+    116: PestInfo(name:'Xylotrechus arvicola',commonName:'سوسک چوب‌خوار',order:'Coleoptera - قاب‌بالان',distribution:'اروپا',hosts:'درختان میوه',damage:'خسارت چوب',symptoms:'دالان',controlMethods:'بهداشت باغ',quarantineStatus:'آفت میوه'),
+    117: PestInfo(name:'Yponomeuta padella',commonName:'پروانه چادر سیب',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'سیب',damage:'برگ‌خواری',symptoms:'چادر ابریشمی',controlMethods:'Bt',quarantineStatus:'آفت میوه'),
+    118: PestInfo(name:'Yponomeuta padella (Larve)',commonName:'لارو پروانه چادر',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'سیب',damage:'برگ‌خواری',symptoms:'چادر ابریشمی',controlMethods:'جمع‌آوری',quarantineStatus:'آفت میوه'),
+    119: PestInfo(name:'Zeuzera pyrina',commonName:'پروانه چوب‌خوار',order:'Lepidoptera - پروانه‌سانان',distribution:'اروپا، آسیا',hosts:'درختان میوه',damage:'خسارت به شاخه',symptoms:'خشکیدگی شاخه',controlMethods:'هرس',quarantineStatus:'آفت مهم'),
   };
-
   static PestInfo? getPestByIndex(int index) {
     return pests[index];
   }
+}
+
+    if (pestDetails.containsKey(name)) {
+      var info = pestDetails[name]!;
+      return PestInfo(
+        name: name,
+        commonName: info['commonName'] ?? name,
+        order: info['order'] ?? 'نامشخص',
+        distribution: info['distribution'] ?? 'نامشخص',
+        hosts: info['hosts'] ?? 'نامشخص',
+        damage: info['damage'] ?? 'نامشخص',
+        symptoms: info['symptoms'] ?? 'نامشخص',
+        controlMethods: info['controlMethods'] ?? 'نامشخص',
+        quarantineStatus: info['quarantineStatus'] ?? 'نامشخص',
+      );
+    }
+
+    // اطلاعات پیش‌فرض برای آفاتی که در map نیستند
+    return PestInfo(
+      name: name,
+      commonName: name,
+      order: 'نامشخص',
+      distribution: 'نامشخص',
+      hosts: 'نامشخص',
+      damage: 'نامشخص',
+      symptoms: 'نامشخص',
+      controlMethods: 'نامشخص',
+      quarantineStatus: 'نامشخص',
+    );
+  }
+
+  static PestInfo? getPestByIndex(int index) {
+    return _pests[index];
+  }
+
+  static int get length => _labels.length;
 }
 
 // ==================== نتایج تشخیص ====================
@@ -183,11 +239,12 @@ class TopPredictions {
 class ClassifierService {
   Interpreter? _interpreter;
   final int _inputSize = 224;
-  final int _numClasses = 119; // ✅ ۱۱۹ کلاس (۰ تا ۱۱۸)
+  final int _numClasses = 119;
 
   Future<void> loadModel() async {
     try {
       _interpreter = await Interpreter.fromAsset('assets/QU_Pests_119Classes_float16.tflite');
+      await PestDatabase.loadLabels(); // بارگذاری برچسب‌ها از فایل
     } catch (e) {
       throw Exception('خطا در بارگذاری مدل: $e');
     }
