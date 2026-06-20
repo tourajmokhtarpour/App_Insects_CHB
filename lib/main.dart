@@ -161,7 +161,20 @@ class PestDatabase {
     try {
       String labelsText = await rootBundle.loadString('assets/labels.txt');
       _labels = labelsText.split('\n').where((s) => s.trim().isNotEmpty).map((s) => s.trim()).toList();
-      print('✅ تعداد برچسب‌ها بارگذاری شده: ${_labels.length}');
+      
+      print('✅ تعداد برچسب‌ها: ${_labels.length}');
+      
+      // بررسی تطابق با دیتابیس
+      int matchCount = 0;
+      for (String label in _labels) {
+        if (_pestsMap.containsKey(label)) {
+          matchCount++;
+        } else {
+          print('⚠️ برچسب بدون اطلاعات: "$label"');
+        }
+      }
+      print('✅ تعداد تطابق: $matchCount از ${_labels.length}');
+      
     } catch (e) {
       throw Exception('خطا در بارگذاری فایل labels.txt: $e');
     }
@@ -170,7 +183,31 @@ class PestDatabase {
   static PestInfo? getPestByIndex(int index) {
     if (index < 0 || index >= _labels.length) return null;
     String label = _labels[index];
-    return _pestsMap[label];
+    
+    // جستجوی دقیق
+    if (_pestsMap.containsKey(label)) {
+      return _pestsMap[label];
+    }
+    
+    // جستجوی بدون حساسیت به بزرگی و کوچکی
+    for (var key in _pestsMap.keys) {
+      if (key.toLowerCase() == label.toLowerCase()) {
+        return _pestsMap[key];
+      }
+    }
+    
+    // اگر پیدا نشد، یک PestInfo پیش‌فرض برگردان
+    return PestInfo(
+      name: label,
+      commonName: label,
+      order: 'نامشخص',
+      distribution: 'نامشخص',
+      hosts: 'نامشخص',
+      damage: 'نامشخص',
+      symptoms: 'نامشخص',
+      controlMethods: 'نامشخص',
+      quarantineStatus: 'نامشخص',
+    );
   }
 
   static int get length => _labels.length;
@@ -204,6 +241,13 @@ class ClassifierService {
   Future<void> loadModel() async {
     try {
       _interpreter = await Interpreter.fromAsset('assets/QU_Pests_119Classes_float16.tflite');
+      
+      // بررسی فرمت ورودی و خروجی مدل
+      var inputTensor = _interpreter!.getInputTensors().first;
+      var outputTensor = _interpreter!.getOutputTensors().first;
+      print('📥 فرمت ورودی مدل: ${inputTensor.shape}');
+      print('📤 فرمت خروجی مدل: ${outputTensor.shape}');
+      
       await PestDatabase.loadLabels();
     } catch (e) {
       throw Exception('خطا در بارگذاری مدل: $e');
@@ -215,7 +259,10 @@ class ClassifierService {
 
     try {
       img.Image? image = img.decodeImage(imageFile.readAsBytesSync());
-      if (image == null) return null;
+      if (image == null) {
+        print('❌ خطا در decode تصویر');
+        return null;
+      }
 
       img.Image resized = img.copyResize(image, width: _inputSize, height: _inputSize);
 
@@ -233,28 +280,43 @@ class ClassifierService {
       var output = List.filled(1 * _numClasses, 0.0).reshape([1, _numClasses]);
       _interpreter!.run(input, output);
 
+      // لاگ خروجی مدل
+      print('📊 خروجی مدل (5 مقدار اول): ${output[0].sublist(0, 5)}');
+      print('📊 مجموع خروجی: ${output[0].reduce((a, b) => a + b)}');
+
       List<MapEntry<int, double>> allPredictions = [];
       for (int i = 0; i < _numClasses; i++) {
         allPredictions.add(MapEntry(i, output[0][i]));
       }
       allPredictions.sort((a, b) => b.value.compareTo(a.value));
 
+      // نمایش 5 پیش‌بینی برتر
+      print('🏆 5 پیش‌بینی برتر:');
+      for (int i = 0; i < 5 && i < allPredictions.length; i++) {
+        int index = allPredictions[i].key;
+        double confidence = allPredictions[i].value;
+        String label = index < PestDatabase.length ? PestDatabase._labels[index] : 'نامشخص';
+        print('   ${i + 1}. ایندکس $index ($label): ${(confidence * 100).toStringAsFixed(2)}%');
+      }
+
       List<ClassificationResult> top3 = [];
       for (int i = 0; i < 3 && i < allPredictions.length; i++) {
         int index = allPredictions[i].key;
         double confidence = allPredictions[i].value;
         PestInfo? pest = PestDatabase.getPestByIndex(index);
-        if (pest != null) {
-          top3.add(ClassificationResult(
-            pestInfo: pest,
-            confidence: confidence,
-            rank: i + 1,
-          ));
-        }
+        
+        // ✅ همیشه اضافه کن، حتی اگر pest پیش‌فرض باشد
+        top3.add(ClassificationResult(
+          pestInfo: pest!,
+          confidence: confidence,
+          rank: i + 1,
+        ));
       }
 
       return TopPredictions(top3);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ خطا در پردازش: $e');
+      print('❌ StackTrace: $stackTrace');
       throw Exception('خطا در پردازش: $e');
     }
   }
@@ -328,7 +390,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final result = await _classifier.classifyImage(_imageFile!);
         if (!mounted) return;
 
-        if (result != null && result.top != null) {
+        if (result != null && result.predictions.isNotEmpty) {
           setState(() {
             _predictions = result;
             _isProcessing = false;
@@ -337,7 +399,8 @@ class _HomeScreenState extends State<HomeScreen> {
           _showError('تشخیص ممکن نبود. لطفاً تصویر بهتری انتخاب کنید.');
         }
       } catch (e) {
-        _showError(e.toString());
+        _showError('خطا: $e');
+        print('❌ خطای کامل: $e');
       } finally {
         if (mounted) setState(() => _isProcessing = false);
       }
